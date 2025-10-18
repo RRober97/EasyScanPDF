@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../routes/app_routes.dart';
+
 enum CustomAppBarVariant {
   primary,
   secondary,
@@ -124,13 +126,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       // PDF Generation action
       IconButton(
         icon: const Icon(Icons.picture_as_pdf),
-        onPressed: () => Navigator.pushNamed(context, '/pdf-generation'),
+        onPressed: () => Navigator.pushNamed(context, AppRoutes.pdfGeneration),
         tooltip: 'Generar PDF',
       ),
       // Share Document action
       IconButton(
         icon: const Icon(Icons.share),
-        onPressed: () => Navigator.pushNamed(context, '/share-document'),
+        onPressed: () => Navigator.pushNamed(context, AppRoutes.shareDocument),
         tooltip: 'Compartir documento',
       ),
     ];

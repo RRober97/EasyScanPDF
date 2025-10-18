@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../routes/app_routes.dart';
+
 enum CustomBottomBarVariant {
   navigation,
   action,
@@ -113,7 +115,7 @@ class CustomBottomBar extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    Navigator.pushNamed(context, '/pdf-generation');
+                    Navigator.pushNamed(context, AppRoutes.pdfGeneration);
                   },
                   icon: const Icon(Icons.picture_as_pdf, size: 20),
                   label: const Text('Generar PDF'),
@@ -127,7 +129,7 @@ class CustomBottomBar extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    Navigator.pushNamed(context, '/share-document');
+                    Navigator.pushNamed(context, AppRoutes.shareDocument);
                   },
                   icon: const Icon(Icons.share, size: 20),
                   label: const Text('Compartir'),
@@ -238,7 +240,7 @@ class CustomBottomBar extends StatelessWidget {
         'PDF',
         1,
         colorScheme,
-        onTap: () => Navigator.pushNamed(context, '/pdf-generation'),
+        onTap: () => Navigator.pushNamed(context, AppRoutes.pdfGeneration),
       ),
       _buildFloatingItem(
         context,
@@ -246,7 +248,7 @@ class CustomBottomBar extends StatelessWidget {
         'Compartir',
         2,
         colorScheme,
-        onTap: () => Navigator.pushNamed(context, '/share-document'),
+        onTap: () => Navigator.pushNamed(context, AppRoutes.shareDocument),
       ),
       _buildFloatingItem(
         context,
@@ -271,14 +273,14 @@ class CustomBottomBar extends StatelessWidget {
         Icons.picture_as_pdf,
         1,
         colorScheme,
-        onTap: () => Navigator.pushNamed(context, '/pdf-generation'),
+        onTap: () => Navigator.pushNamed(context, AppRoutes.pdfGeneration),
       ),
       _buildMinimalItem(
         context,
         Icons.share,
         2,
         colorScheme,
-        onTap: () => Navigator.pushNamed(context, '/share-document'),
+        onTap: () => Navigator.pushNamed(context, AppRoutes.shareDocument),
       ),
       _buildMinimalItem(
         context,
@@ -373,10 +375,10 @@ class CustomBottomBar extends StatelessWidget {
         // Scanner - stay on current page or navigate to scanner
         break;
       case 1:
-        Navigator.pushNamed(context, '/pdf-generation');
+        Navigator.pushNamed(context, AppRoutes.pdfGeneration);
         break;
       case 2:
-        Navigator.pushNamed(context, '/share-document');
+        Navigator.pushNamed(context, AppRoutes.shareDocument);
         break;
       case 3:
         // Settings - implement settings navigation

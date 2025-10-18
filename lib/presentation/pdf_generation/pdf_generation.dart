@@ -13,6 +13,7 @@ import 'package:universal_html/html.dart' as html;
 import '../../core/app_export.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_icon_widget.dart';
+import '../../routes/app_routes.dart';
 import './widgets/action_buttons_widget.dart';
 import './widgets/document_preview_widget.dart';
 import './widgets/error_dialog_widget.dart';
@@ -325,7 +326,7 @@ startxref
         // Mobile sharing - navigate to share screen
         Navigator.pushNamed(
           context,
-          '/share-document',
+          AppRoutes.shareDocument,
           arguments: {'pdfPath': _generatedPdfPath},
         );
       }
