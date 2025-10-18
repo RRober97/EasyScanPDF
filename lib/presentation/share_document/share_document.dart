@@ -12,6 +12,7 @@ import 'package:universal_html/html.dart' as html;
 import '../../core/app_export.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_bottom_bar.dart';
+import '../../routes/app_routes.dart';
 import './widgets/document_preview_widget.dart';
 import './widgets/share_options_widget.dart';
 import './widgets/share_success_widget.dart';
@@ -250,7 +251,7 @@ startxref
   }
 
   void _handleDone() {
-    Navigator.pushReplacementNamed(context, '/pdf-generation');
+    Navigator.pushReplacementNamed(context, AppRoutes.pdfGeneration);
   }
 
   void _handleBackPressed() {
