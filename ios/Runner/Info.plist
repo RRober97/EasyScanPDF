@@ -39,11 +39,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>NSAppTransportSecurity</key>
+        <key>CADisableMinimumFrameDurationOnPhone</key>
+        <true/>
+        <key>UIApplicationSupportsIndirectInputEvents</key>
+        <true/>
+        <key>NSCameraUsageDescription</key>
+        <string>Necesitamos la cámara para escanear documentos.</string>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>Acceder a tu galería para seleccionar imágenes.</string>
+        <key>NSPhotoLibraryAddUsageDescription</key>
+        <string>Guardar documentos en tu galería.</string>
+        <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
         <true />
