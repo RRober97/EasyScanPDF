@@ -46,59 +46,60 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _initializeApp() async {
     try {
-      // Check camera permissions
-      setState(() {
-        _statusMessage = 'Verificando permisos...';
-      });
+      _updateStatus('Verificando permisos...');
 
-      bool hasPermission = await _requestCameraPermission();
+      final hasPermission = await _requestCameraPermission();
 
       if (!hasPermission) {
-        setState(() {
-          _statusMessage = 'Permisos de cámara requeridos';
-        });
-        await Future.delayed(const Duration(seconds: 1));
+        _updateStatus('Permisos de cámara requeridos');
+        await Future.delayed(const Duration(milliseconds: 400));
         _navigateToPermissionFlow();
         return;
       }
 
-      // Initialize camera services
-      setState(() {
-        _statusMessage = 'Inicializando cámara...';
-      });
+      _updateStatus('Preparando servicios...');
 
-      await _initializeCameraServices();
+      await Future.wait([
+        _initializeCameraServices(),
+        _loadUserPreferences(),
+        _initializePDFServices(),
+      ]);
 
-      // Load user preferences
-      setState(() {
-        _statusMessage = 'Cargando configuración...';
-      });
-
-      await _loadUserPreferences();
-
-      // Initialize PDF generation libraries
-      setState(() {
-        _statusMessage = 'Preparando servicios PDF...';
-      });
-
-      await _initializePDFServices();
-
-      // Complete initialization
-      setState(() {
-        _statusMessage = 'Listo';
-        _isInitializing = false;
-      });
-
-      await Future.delayed(const Duration(milliseconds: 800));
-      _navigateToMainScreen();
+      _completeInitialization();
     } catch (e) {
-      setState(() {
-        _statusMessage = 'Error de inicialización';
-        _isInitializing = false;
-      });
-      await Future.delayed(const Duration(seconds: 2));
-      _showRetryOption();
+      _handleInitializationError();
     }
+  }
+
+  void _updateStatus(String message) {
+    if (!mounted) return;
+    setState(() {
+      _statusMessage = message;
+    });
+  }
+
+  Future<void> _completeInitialization() async {
+    if (!mounted) return;
+    setState(() {
+      _statusMessage = 'Listo';
+      _isInitializing = false;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (!mounted) return;
+    _navigateToMainScreen();
+  }
+
+  Future<void> _handleInitializationError() async {
+    if (!mounted) return;
+    setState(() {
+      _statusMessage = 'Error de inicialización';
+      _isInitializing = false;
+    });
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    _showRetryOption();
   }
 
   Future<bool> _requestCameraPermission() async {
@@ -115,13 +116,14 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _initializeCameraServices() async {
+    if (kIsWeb) {
+      return;
+    }
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         throw Exception('No cameras available');
       }
-      // Camera initialization successful
-      await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
       throw Exception('Camera initialization failed');
     }
@@ -129,23 +131,24 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _loadUserPreferences() async {
     // Simulate loading user preferences
-    await Future.delayed(const Duration(milliseconds: 300));
   }
 
   Future<void> _initializePDFServices() async {
     // Simulate PDF library initialization
-    await Future.delayed(const Duration(milliseconds: 400));
   }
 
   void _navigateToMainScreen() {
+    if (!mounted) return;
     Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   void _navigateToPermissionFlow() {
+    if (!mounted) return;
     Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   void _showRetryOption() {
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -181,6 +184,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _retryInitialization() {
+    if (!mounted) return;
     setState(() {
       _isInitializing = true;
       _statusMessage = 'Reintentando...';
