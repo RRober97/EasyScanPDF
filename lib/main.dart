@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sizer/sizer.dart';
 
 import 'core/app_export.dart';
-import 'presentation/main_scanning_screen/main_scanning_screen.dart';
+import 'routes/app_routes.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const PdfScannerApp());
+  runApp(const ProviderScope(child: PdfScannerApp()));
 }
 
 class PdfScannerApp extends StatelessWidget {
@@ -24,9 +25,6 @@ class PdfScannerApp extends StatelessWidget {
           themeMode: ThemeMode.system,
           initialRoute: AppRoutes.splash,
           routes: AppRoutes.routes,
-          onUnknownRoute: (settings) => MaterialPageRoute(
-            builder: (_) => const MainScanningScreen(),
-          ),
         );
       },
     );

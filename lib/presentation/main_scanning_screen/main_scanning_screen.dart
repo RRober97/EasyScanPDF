@@ -1,362 +1,255 @@
-import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:sizer/sizer.dart';
-import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
 
-import '../../core/app_export.dart';
-import './widgets/app_header_widget.dart';
-import './widgets/error_dialog_widget.dart';
-import './widgets/instruction_text_widget.dart';
-import './widgets/permission_dialog_widget.dart';
-import './widgets/scan_button_widget.dart';
+import '../../core/constants/limits.dart';
+import '../../routes/app_routes.dart';
+import '../../services/scan_session.dart';
+import '../../services/subscription_service.dart';
 
-class MainScanningScreen extends StatefulWidget {
-  const MainScanningScreen({Key? key}) : super(key: key);
+class MainScanningScreen extends ConsumerStatefulWidget {
+  const MainScanningScreen({super.key});
 
   @override
-  State<MainScanningScreen> createState() => _MainScanningScreenState();
+  ConsumerState<MainScanningScreen> createState() => _MainScanningScreenState();
 }
 
-class _MainScanningScreenState extends State<MainScanningScreen>
-    with WidgetsBindingObserver {
-  bool _isLoading = false;
-  bool _isPermissionRequested = false;
-  List<CameraDescription> _cameras = [];
-  CameraController? _cameraController;
+class _MainScanningScreenState extends ConsumerState<MainScanningScreen> {
+  final ImagePicker _picker = ImagePicker();
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initializeCameras();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _cameraController?.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final CameraController? cameraController = _cameraController;
-    if (cameraController == null || !cameraController.value.isInitialized) {
-      return;
-    }
-
-    if (state == AppLifecycleState.inactive) {
-      cameraController.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _initializeCameras();
+  Future<void> _addFromGallery() async {
+    if (!await _canAddPage()) return;
+    final image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      final bytes = await image.readAsBytes();
+      await ref.read(scanSessionProvider.notifier).addPage(bytes);
+      Fluttertoast.showToast(msg: 'Imagen añadida desde la galería');
     }
   }
 
-  Future<void> _initializeCameras() async {
-    try {
-      _cameras = await availableCameras();
-    } catch (e) {
-      debugPrint('Error initializing cameras: $e');
-    }
+  Future<void> _openCamera() async {
+    if (!await _canAddPage()) return;
+    await Navigator.pushNamed(context, AppRoutes.cameraScanningInterface);
+    setState(() {});
   }
 
-  Future<bool> _requestCameraPermission() async {
-    if (kIsWeb) {
-      return true; // Browser handles permissions
-    }
-
-    final status = await Permission.camera.status;
-
-    if (status.isGranted) {
-      return true;
-    }
-
-    if (status.isDenied && !_isPermissionRequested) {
-      setState(() => _isPermissionRequested = true);
-      return await _showPermissionDialog();
-    }
-
-    if (status.isPermanentlyDenied) {
-      _showPermissionDeniedDialog();
-      return false;
-    }
-
-    final result = await Permission.camera.request();
-    return result.isGranted;
-  }
-
-  Future<bool> _showPermissionDialog() async {
-    final completer = Completer<bool>();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return PermissionDialogWidget(
-          onAllowPressed: () async {
-            Navigator.of(context).pop();
-            final result = await Permission.camera.request();
-            completer.complete(result.isGranted);
-          },
-          onDenyPressed: () {
-            Navigator.of(context).pop();
-            completer.complete(false);
-          },
-        );
-      },
-    );
-
-    return completer.future;
-  }
-
-  void _showPermissionDeniedDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return ErrorDialogWidget(
-          title: 'Permiso Denegado',
-          message:
-              'Para escanear documentos, necesitas habilitar el acceso a la cámara en la configuración de la aplicación.',
-          onRetryPressed: () {
-            Navigator.of(context).pop();
-            _handleScanButtonPressed();
-          },
-          onSettingsPressed: () async {
-            Navigator.of(context).pop();
-            await openAppSettings();
-          },
-        );
-      },
-    );
-  }
-
-  void _showCameraErrorDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return ErrorDialogWidget(
-          title: 'Error de Cámara',
-          message:
-              'No se pudo acceder a la cámara. Verifica que no esté siendo utilizada por otra aplicación.',
-          onRetryPressed: () {
-            Navigator.of(context).pop();
-            _handleScanButtonPressed();
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _initializeCamera() async {
-    if (_cameras.isEmpty) {
-      _showCameraErrorDialog();
-      return;
-    }
-
-    try {
-      final camera = kIsWeb
-          ? _cameras.firstWhere(
-              (c) => c.lensDirection == CameraLensDirection.front,
-              orElse: () => _cameras.first)
-          : _cameras.firstWhere(
-              (c) => c.lensDirection == CameraLensDirection.back,
-              orElse: () => _cameras.first);
-
-      _cameraController = CameraController(
-        camera,
-        kIsWeb ? ResolutionPreset.medium : ResolutionPreset.high,
-        enableAudio: false,
+  Future<bool> _canAddPage() async {
+    final subscription = ref.read(subscriptionProvider);
+    final session = ref.read(scanSessionProvider);
+    final limit = subscription.isPro
+        ? Limits.proMaxPagesPerPdf
+        : Limits.normalMaxPagesPerPdf;
+    if (session.pages.length >= limit) {
+      Fluttertoast.showToast(msg: 'Has alcanzado el límite de páginas.');
+      final upgraded = await Navigator.pushNamed<bool>(
+        context,
+        AppRoutes.paywall,
       );
-
-      await _cameraController!.initialize();
-      await _applySettings();
-
-      if (mounted) {
-        Navigator.pushNamed(context, '/camera-scanning-interface');
-      }
-    } catch (e) {
-      debugPrint('Error initializing camera: $e');
-      _showCameraErrorDialog();
+      return upgraded == true || ref.read(subscriptionProvider).isPro;
     }
+    return true;
   }
 
-  Future<void> _applySettings() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
-
-    try {
-      await _cameraController!.setFocusMode(FocusMode.auto);
-
-      if (!kIsWeb) {
-        try {
-          await _cameraController!.setFlashMode(FlashMode.auto);
-        } catch (e) {
-          debugPrint('Flash mode not supported: $e');
-        }
-      }
-    } catch (e) {
-      debugPrint('Error applying camera settings: $e');
-    }
-  }
-
-  Future<void> _handleScanButtonPressed() async {
-    if (_isLoading) return;
-
-    setState(() => _isLoading = true);
-    HapticFeedback.mediumImpact();
-
-    try {
-      final hasPermission = await _requestCameraPermission();
-
-      if (!hasPermission) {
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      await _initializeCamera();
-    } catch (e) {
-      debugPrint('Error handling scan button press: $e');
-      _showCameraErrorDialog();
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  Future<void> _showAddOptions() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Usar cámara'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openCamera();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Seleccionar de la galería'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _addFromGallery();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(scanSessionProvider);
+    final subscription = ref.watch(subscriptionProvider);
+    final limit = subscription.isPro
+        ? Limits.proMaxPagesPerPdf
+        : Limits.normalMaxPagesPerPdf;
+
     return Scaffold(
-      backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Container(
+      appBar: AppBar(
+        title: const Text('Lienzo de escaneo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.folder_open),
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.library),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddOptions,
+        child: const Icon(Icons.add),
+      ),
+      body: Column(
+        children: [
+          Container(
             width: double.infinity,
-            constraints: BoxConstraints(
-              minHeight: 100.h -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom,
-            ),
-            child: Column(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(height: 4.h),
-                const AppHeaderWidget(),
-                SizedBox(height: 8.h),
-                Expanded(
-                  flex: 0,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 40.w,
-                        height: 40.w,
-                        decoration: BoxDecoration(
-                          color: AppTheme.lightTheme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(20.w),
-                          border: Border.all(
-                            color: AppTheme.lightTheme.colorScheme.outline
-                                .withValues(alpha: 0.2),
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: CustomIconWidget(
-                            iconName: 'document_scanner',
-                            color: AppTheme.lightTheme.primaryColor,
-                            size: 20.w,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 6.h),
-                      ScanButtonWidget(
-                        onPressed: _handleScanButtonPressed,
-                        isLoading: _isLoading,
-                      ),
-                      SizedBox(height: 4.h),
-                      const InstructionTextWidget(),
-                    ],
-                  ),
+                Text(
+                  'Páginas: ${session.pages.length}/$limit',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                SizedBox(height: 8.h),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildFeatureItem(
-                            icon: 'auto_awesome',
-                            title: 'Detección\nAutomática',
-                          ),
-                          _buildFeatureItem(
-                            icon: 'layers',
-                            title: 'Múltiples\nPáginas',
-                          ),
-                          _buildFeatureItem(
-                            icon: 'share',
-                            title: 'Compartir\nFácil',
-                          ),
-                        ],
-                      ),
-                    ],
+                if (!subscription.isPro)
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, AppRoutes.paywall);
+                    },
+                    child: const Text('Mejorar plan'),
                   ),
-                ),
               ],
             ),
           ),
+          Expanded(
+            child: session.pages.isEmpty
+                ? const _EmptyState()
+                : ReorderableListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    itemCount: session.pages.length,
+                    onReorder: (oldIndex, newIndex) {
+                      ref
+                          .read(scanSessionProvider.notifier)
+                          .reorder(oldIndex, newIndex);
+                    },
+                    itemBuilder: (context, index) {
+                      final page = session.pages[index];
+                      return _PageTile(
+                        key: ValueKey(page.id),
+                        index: index,
+                        bytes: page.bytes,
+                        onRotate: () => ref
+                            .read(scanSessionProvider.notifier)
+                            .rotatePage(page.id),
+                        onDelete: () => ref
+                            .read(scanSessionProvider.notifier)
+                            .removePage(page.id),
+                      );
+                    },
+                  ),
+          ),
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.all(16),
+            child: FilledButton.icon(
+              onPressed: session.pages.isEmpty
+                  ? () => Fluttertoast.showToast(
+                        msg: 'Añade al menos una página para generar el PDF',
+                      )
+                  : () {
+                      Navigator.pushNamed(context, AppRoutes.pdfGeneration);
+                    },
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text('Generar PDF'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PageTile extends StatelessWidget {
+  const _PageTile({
+    super.key,
+    required this.index,
+    required this.bytes,
+    required this.onRotate,
+    required this.onDelete,
+  });
+
+  final int index;
+  final Uint8List bytes;
+  final VoidCallback onRotate;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: key,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.memory(
+            bytes,
+            width: 60,
+            height: 80,
+            fit: BoxFit.cover,
+          ),
+        ),
+        title: Text('Página ${index + 1}'),
+        trailing: Wrap(
+          spacing: 8,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.rotate_90_degrees_ccw),
+              onPressed: onRotate,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: onDelete,
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildFeatureItem({
-    required String icon,
-    required String title,
-  }) {
-    return Column(
-      children: [
-        Container(
-          width: 12.w,
-          height: 12.w,
-          decoration: BoxDecoration(
-            color: AppTheme.lightTheme.primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: CustomIconWidget(
-              iconName: icon,
-              color: AppTheme.lightTheme.primaryColor,
-              size: 6.w,
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.document_scanner_outlined, size: 64),
+            const SizedBox(height: 16),
+            Text(
+              'Comienza añadiendo páginas desde la cámara o la galería.',
+              style: Theme.of(context).textTheme.bodyLarge,
+              textAlign: TextAlign.center,
             ),
-          ),
+          ],
         ),
-        SizedBox(height: 1.h),
-        Text(
-          title,
-          style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-            color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-            fontSize: 10.sp,
-            fontWeight: FontWeight.w500,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 }
