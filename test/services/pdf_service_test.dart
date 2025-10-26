@@ -3,7 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:easyscanpdf/services/pdf_service.dart';
+import 'package:path/path.dart' as p;
+import 'package:pdf_scanner/services/pdf_service.dart';
 
 Uint8List _samplePage() {
   final image = img.Image(width: 100, height: 100);
@@ -39,6 +40,18 @@ void main() {
       final file = await service.buildPdf(pages, isPro: true);
       expect(await file.exists(), isTrue);
       expect(await file.length(), greaterThan(0));
+    });
+
+    test('sanitizes provided filename to avoid invalid path characters', () async {
+      final pages = [_samplePage()];
+      final file = await service.buildPdf(
+        pages,
+        isPro: true,
+        filename: 'Documento 26/10 17:57.pdf',
+      );
+
+      expect(p.basename(file.path), 'Documento_26_10_17_57.pdf');
+      expect(await file.exists(), isTrue);
     });
   });
 }
