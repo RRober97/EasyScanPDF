@@ -86,7 +86,6 @@ class _DocumentEditorPageState extends ConsumerState<DocumentEditorPage> {
 
   @override
   void dispose() {
-    _cropController.dispose();
     super.dispose();
   }
 
@@ -655,7 +654,7 @@ Uint8List _applyImageAdjustments(_ImageAdjustmentPayload payload) {
       contrast: payload.contrast * 1.25,
       brightness: payload.brightness + 0.05,
     );
-    working = img.sharpen(working);
+    working = img.smooth(working, weight: 1.25);
   }
   return Uint8List.fromList(img.encodeJpg(working, quality: 95));
 }
