@@ -1,363 +1,250 @@
+import 'dart:typed_data';
+
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../core/app_export.dart';
-import '../../theme/app_theme.dart';
-import './widgets/camera_overlay_widget.dart';
-import './widgets/camera_preview_widget.dart';
-import './widgets/document_detection_widget.dart';
+import '../../core/constants/limits.dart';
+import '../../routes/app_routes.dart';
+import '../../services/scan_session.dart';
+import '../../services/subscription_service.dart';
 
-class CameraScanningInterface extends StatefulWidget {
+class CameraScanningInterface extends ConsumerStatefulWidget {
   const CameraScanningInterface({super.key});
 
   @override
-  State<CameraScanningInterface> createState() =>
+  ConsumerState<CameraScanningInterface> createState() =>
       _CameraScanningInterfaceState();
 }
 
-class _CameraScanningInterfaceState extends State<CameraScanningInterface>
+class _CameraScanningInterfaceState
+    extends ConsumerState<CameraScanningInterface>
     with WidgetsBindingObserver {
-  CameraController? _cameraController;
-  List<CameraDescription> _cameras = [];
-  bool _isCameraInitialized = false;
-  bool _isDocumentDetected = false;
-  bool _showContinueOptions = false;
-  int _pageCount = 1;
-  String? _errorMessage;
-  List<XFile> _capturedImages = [];
-  final ImagePicker _imagePicker = ImagePicker();
-
-  // Mock document detection data
-  final List<Map<String, dynamic>> _mockDetectionStates = [
-    {
-      "isDetected": true,
-      "message": "Documento detectado correctamente",
-      "confidence": 0.95,
-    },
-    {
-      "isDetected": false,
-      "message": "Mejora la iluminación",
-      "confidence": 0.3,
-    },
-    {
-      "isDetected": false,
-      "message": "Acerca más el documento",
-      "confidence": 0.4,
-    },
-    {
-      "isDetected": true,
-      "message": "Posición perfecta para escanear",
-      "confidence": 0.98,
-    },
-  ];
-
-  int _currentDetectionIndex = 0;
+  CameraController? _controller;
+  bool _isInitialized = false;
+  bool _isBusy = false;
+  String? _error;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
-    _startDocumentDetectionSimulation();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _cameraController?.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final CameraController? cameraController = _cameraController;
-
-    if (cameraController == null || !cameraController.value.isInitialized) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
       return;
     }
-
     if (state == AppLifecycleState.inactive) {
-      cameraController.dispose();
+      controller.dispose();
     } else if (state == AppLifecycleState.resumed) {
       _initializeCamera();
     }
   }
 
-  Future<bool> _requestCameraPermission() async {
-    if (kIsWeb) return true;
-
-    final status = await Permission.camera.request();
-    return status.isGranted;
-  }
-
   Future<void> _initializeCamera() async {
+    if (_isBusy) return;
+    setState(() {
+      _isBusy = true;
+      _error = null;
+    });
     try {
-      if (!await _requestCameraPermission()) {
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        if (status.isPermanentlyDenied) {
+          await openAppSettings();
+        }
         setState(() {
-          _errorMessage = 'Permisos de cámara requeridos';
+          _error = 'Permiso de cámara denegado';
         });
         return;
       }
 
-      _cameras = await availableCameras();
-      if (_cameras.isEmpty) {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
         setState(() {
-          _errorMessage = 'No se encontraron cámaras disponibles';
+          _error = 'No hay cámaras disponibles';
         });
         return;
       }
 
-      final camera = kIsWeb
-          ? _cameras.firstWhere(
-              (c) => c.lensDirection == CameraLensDirection.front,
-              orElse: () => _cameras.first,
-            )
-          : _cameras.firstWhere(
-              (c) => c.lensDirection == CameraLensDirection.back,
-              orElse: () => _cameras.first,
-            );
-
-      _cameraController = CameraController(
-        camera,
-        kIsWeb ? ResolutionPreset.medium : ResolutionPreset.high,
+      final controller = CameraController(
+        cameras.first,
+        ResolutionPreset.high,
         enableAudio: false,
       );
-
-      await _cameraController!.initialize();
-      await _applySettings();
-
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-          _errorMessage = null;
-        });
+      await controller.initialize();
+      await controller.setFocusMode(FocusMode.auto);
+      if (!mounted) {
+        await controller.dispose();
+        return;
       }
+      setState(() {
+        _controller = controller;
+        _isInitialized = true;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Error al inicializar la cámara';
-          _isCameraInitialized = false;
-        });
-      }
+      setState(() {
+        _error = 'Error al inicializar la cámara';
+      });
+    } finally {
+      setState(() {
+        _isBusy = false;
+      });
     }
-  }
-
-  Future<void> _applySettings() async {
-    if (_cameraController == null) return;
-
-    try {
-      await _cameraController!.setFocusMode(FocusMode.auto);
-      if (!kIsWeb) {
-        try {
-          await _cameraController!.setFlashMode(FlashMode.auto);
-        } catch (e) {
-          // Flash not supported, continue without it
-        }
-      }
-    } catch (e) {
-      // Settings not supported, continue without them
-    }
-  }
-
-  void _startDocumentDetectionSimulation() {
-    // Simulate document detection changes every 3 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        _updateDocumentDetection();
-        _startDocumentDetectionSimulation();
-      }
-    });
-  }
-
-  void _updateDocumentDetection() {
-    final detection = _mockDetectionStates[_currentDetectionIndex];
-    setState(() {
-      _isDocumentDetected = detection["isDetected"] as bool;
-      if (!_isDocumentDetected) {
-        _errorMessage = detection["message"] as String;
-      } else {
-        _errorMessage = null;
-      }
-    });
-
-    _currentDetectionIndex =
-        (_currentDetectionIndex + 1) % _mockDetectionStates.length;
   }
 
   Future<void> _capturePhoto() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized || _isBusy) {
       return;
     }
-
+    if (!await _canAddPage()) {
+      return;
+    }
+    setState(() => _isBusy = true);
     try {
       HapticFeedback.mediumImpact();
-      final XFile photo = await _cameraController!.takePicture();
-
-      setState(() {
-        _capturedImages.add(photo);
-        _showContinueOptions = true;
-      });
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Página $_pageCount capturada exitosamente',
-            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: AppTheme.successLight,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      final xFile = await controller.takePicture();
+      final bytes = await xFile.readAsBytes();
+      await _addPage(bytes);
+      Fluttertoast.showToast(msg: 'Página añadida');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Error al capturar la imagen',
-            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: AppTheme.errorLight,
-        ),
-      );
+      Fluttertoast.showToast(msg: 'Error al capturar la imagen');
+    } finally {
+      setState(() => _isBusy = false);
     }
   }
 
-  Future<void> _selectFromGallery() async {
+  Future<void> _pickFromGallery() async {
+    if (!await _canAddPage()) {
+      return;
+    }
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-
+      final image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        setState(() {
-          _capturedImages.add(image);
-          _showContinueOptions = true;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Imagen seleccionada de la galería',
-              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: AppTheme.successLight,
-          ),
-        );
+        final bytes = await image.readAsBytes();
+        await _addPage(bytes);
+        Fluttertoast.showToast(msg: 'Imagen añadida desde la galería');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Error al seleccionar imagen',
-            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: AppTheme.errorLight,
-        ),
-      );
+      Fluttertoast.showToast(msg: 'No se pudo abrir la galería');
     }
   }
 
-  void _continueScanning() {
-    setState(() {
-      _pageCount++;
-      _showContinueOptions = false;
-    });
+  Future<void> _addPage(Uint8List bytes) async {
+    await ref.read(scanSessionProvider.notifier).addPage(bytes);
   }
 
-  void _finishScanning() {
-    // Show PDF generation success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'PDF listo - ${_capturedImages.length} páginas procesadas',
-          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppTheme.successLight,
-        duration: const Duration(seconds: 3),
-        action: SnackBarAction(
-          label: 'Compartir',
-          textColor: Colors.white,
-          onPressed: _sharePDF,
-        ),
-      ),
-    );
-
-    // Navigate back to main screen
-    Navigator.pushReplacementNamed(context, '/main-scanning-screen');
-  }
-
-  void _sharePDF() {
-    // Simulate PDF sharing
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Compartiendo PDF...',
-          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppTheme.lightTheme.primaryColor,
-      ),
-    );
-  }
-
-  void _closeScanning() {
-    Navigator.pop(context);
+  Future<bool> _canAddPage() async {
+    final subscription = ref.read(subscriptionProvider);
+    final session = ref.read(scanSessionProvider);
+    final limit = subscription.isPro
+        ? Limits.proMaxPagesPerPdf
+        : Limits.normalMaxPagesPerPdf;
+    if (session.pages.length >= limit) {
+      Fluttertoast.showToast(msg: 'Has alcanzado el límite de páginas.');
+      final upgraded = await Navigator.pushNamed<bool>(
+        context,
+        AppRoutes.paywall,
+      );
+      if (upgraded == true || ref.read(subscriptionProvider).isPro) {
+        return true;
+      }
+      return false;
+    }
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = _controller;
+    final session = ref.watch(scanSessionProvider);
+    final subscription = ref.watch(subscriptionProvider);
+    final limit = subscription.isPro
+        ? Limits.proMaxPagesPerPdf
+        : Limits.normalMaxPagesPerPdf;
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Camera preview
-            CameraPreviewWidget(
-              cameraController: _cameraController,
-              isInitialized: _isCameraInitialized,
-              errorMessage: _errorMessage,
-            ),
-
-            // Camera overlay with controls
-            if (_isCameraInitialized && _errorMessage == null)
-              CameraOverlayWidget(
-                onClose: _closeScanning,
-                onCapture: _capturePhoto,
-                onGallery: _selectFromGallery,
-                pageCount: _pageCount,
-                isDocumentDetected: _isDocumentDetected,
-                showContinueOptions: _showContinueOptions,
-                onContinue: _continueScanning,
-                onFinish: _finishScanning,
-              ),
-
-            // Document detection status
-            if (_isCameraInitialized &&
-                _errorMessage == null &&
-                !_showContinueOptions)
-              DocumentDetectionWidget(
-                isDetected: _isDocumentDetected,
-                errorMessage: !_isDocumentDetected ? _errorMessage : null,
-              ),
-          ],
-        ),
+      appBar: AppBar(
+        title: const Text('Escanear documento'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Listo'),
+          ),
+        ],
       ),
+      body: _error != null
+          ? Center(child: Text(_error!))
+          : controller == null || !_isInitialized
+              ? const Center(child: CircularProgressIndicator())
+              : Stack(
+                  children: [
+                    CameraPreview(controller),
+                    Positioned(
+                      bottom: 24,
+                      left: 24,
+                      right: 24,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            onPressed: _isBusy ? null : _pickFromGallery,
+                            iconSize: 36,
+                            icon: const Icon(Icons.photo_library_outlined),
+                            color: Colors.white,
+                          ),
+                          GestureDetector(
+                            onTap: _isBusy ? null : _capturePhoto,
+                            child: Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 4),
+                              ),
+                            ),
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${session.pages.length}/$limit',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'páginas',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
     );
   }
 }
