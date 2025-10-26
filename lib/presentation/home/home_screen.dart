@@ -76,7 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Organiza, escanea y comparte sin perder ritmo.',
+                      'Tu cámara, tu escáner, tu PDF.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -132,7 +132,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         gradient: LinearGradient(
           colors: [
             Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
