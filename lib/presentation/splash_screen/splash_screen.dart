@@ -138,11 +138,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToMainScreen() {
-    Navigator.pushReplacementNamed(context, '/main-scanning-screen');
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   void _navigateToPermissionFlow() {
-    Navigator.pushReplacementNamed(context, '/main-scanning-screen');
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   void _showRetryOption() {

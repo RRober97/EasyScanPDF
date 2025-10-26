@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -55,6 +56,7 @@ class AppTheme {
 
   /// Light theme optimized for document scanning in various lighting conditions
   static ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: ColorScheme(
       brightness: Brightness.light,
@@ -90,6 +92,8 @@ class AppTheme {
     scaffoldBackgroundColor: backgroundLight,
     cardColor: cardLight,
     dividerColor: dividerLight,
+
+    visualDensity: VisualDensity.adaptivePlatformDensity,
 
     // AppBar theme for clean document scanning interface
     appBarTheme: AppBarTheme(
@@ -195,6 +199,14 @@ class AppTheme {
           fontWeight: FontWeight.w500,
         ),
       ),
+    ),
+
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      },
     ),
 
     // Text theme using Inter font family for optimal readability
@@ -349,6 +361,7 @@ class AppTheme {
 
   /// Dark theme maintaining professional clarity in low-light conditions
   static ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme(
       brightness: Brightness.dark,
@@ -384,6 +397,8 @@ class AppTheme {
     scaffoldBackgroundColor: backgroundDark,
     cardColor: cardDark,
     dividerColor: dividerDark,
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+
     appBarTheme: AppBarTheme(
       backgroundColor: backgroundDark,
       foregroundColor: textPrimaryDark,
@@ -399,6 +414,14 @@ class AppTheme {
         color: textPrimaryDark,
         size: 24,
       ),
+    ),
+
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      },
     ),
     cardTheme: CardThemeData(
       color: cardDark,

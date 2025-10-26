@@ -87,21 +87,37 @@ class StorageService {
     return items;
   }
 
-  Future<StoredPdf> savePdf(File file,
-      {required bool isPro, required int pageCount}) async {
+  Future<StoredPdf> savePdf(
+    File file, {
+    required bool isPro,
+    required int pageCount,
+    String? desiredName,
+  }) async {
     final pdfDir = await _ensurePdfDirectory();
     final now = DateTime.now();
     final id = now.microsecondsSinceEpoch.toString();
     final milliseconds = now.millisecond.toString().padLeft(3, '0');
-    final name =
-        'Scan_${now.year}${_twoDigits(now.month)}${_twoDigits(now.day)}_${_twoDigits(now.hour)}${_twoDigits(now.minute)}${_twoDigits(now.second)}$milliseconds.pdf';
-    final destination = File(p.join(pdfDir.path, name));
+    var fileName = desiredName?.trim().isNotEmpty == true
+        ? _sanitizeFileName(desiredName!)
+        : 'Scan_${now.year}${_twoDigits(now.month)}${_twoDigits(now.day)}_${_twoDigits(now.hour)}${_twoDigits(now.minute)}${_twoDigits(now.second)}$milliseconds.pdf';
+    var destination = File(p.join(pdfDir.path, fileName));
+    final baseName = fileName.toLowerCase().endsWith('.pdf')
+        ? fileName.substring(0, fileName.length - 4)
+        : fileName;
+    var attempt = 1;
+    var candidateName = fileName;
+    while (await destination.exists()) {
+      candidateName = '${baseName}_$attempt.pdf';
+      destination = File(p.join(pdfDir.path, candidateName));
+      attempt++;
+    }
+    fileName = candidateName;
     await file.copy(destination.path);
 
     final sizeBytes = await destination.length();
     final stored = StoredPdf(
       id: id,
-      name: name,
+      name: p.basename(destination.path),
       path: destination.path,
       pageCount: pageCount,
       sizeBytes: sizeBytes,
@@ -156,6 +172,19 @@ class StorageService {
   }
 
   String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+  String _sanitizeFileName(String input) {
+    var sanitized = input.trim();
+    if (sanitized.isEmpty) {
+      sanitized = 'Documento.pdf';
+    }
+    sanitized = sanitized.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    sanitized = sanitized.replaceAll(RegExp(r'\s+'), '_');
+    if (!sanitized.toLowerCase().endsWith('.pdf')) {
+      sanitized = '$sanitized.pdf';
+    }
+    return sanitized;
+  }
 }
 
 final storageServiceProvider = Provider<StorageService>((ref) {
