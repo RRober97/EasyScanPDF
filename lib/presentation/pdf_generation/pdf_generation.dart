@@ -5,14 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf_scanner/platform/file_ops.dart';
 import 'package:sizer/sizer.dart';
+
 import '../../core/app_export.dart';
+import '../../routes/app_routes.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_icon_widget.dart';
-import '../../routes/app_routes.dart';
-import './widgets/action_buttons_widget.dart';
-import './widgets/document_preview_widget.dart';
-import './widgets/error_dialog_widget.dart';
-import './widgets/processing_progress_widget.dart';
 import 'widgets/action_buttons_widget.dart';
 import 'widgets/document_preview_widget.dart';
 import 'widgets/error_dialog_widget.dart';
@@ -25,8 +22,7 @@ class PdfGeneration extends StatefulWidget {
   State<PdfGeneration> createState() => _PdfGenerationState();
 }
 
-class _PdfGenerationState extends State<PdfGeneration>
-    with TickerProviderStateMixin {
+class _PdfGenerationState extends State<PdfGeneration> {
   // Processing state
   double _progress = 0.0;
   bool _isProcessing = true;
@@ -34,9 +30,7 @@ class _PdfGenerationState extends State<PdfGeneration>
   String _statusText = 'Generando PDF...';
   String? _generatedPdfPath;
 
-  // Animation controllers
-  late AnimationController _progressAnimationController;
-  late Timer _progressTimer;
+  Timer? _progressTimer;
 
   // Mock captured document pages
   final List<Map<String, dynamic>> _capturedPages = [
@@ -74,23 +68,18 @@ class _PdfGenerationState extends State<PdfGeneration>
 
   @override
   void dispose() {
-    _progressAnimationController.dispose();
-    _progressTimer.cancel();
+    _progressTimer?.cancel();
     super.dispose();
   }
 
   void _initializeProcessing() {
-    _progressAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 100),
-      vsync: this,
-    );
-
     // Start PDF generation process
     _startPdfGeneration();
   }
 
   void _startPdfGeneration() {
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    _progressTimer =
+        Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
