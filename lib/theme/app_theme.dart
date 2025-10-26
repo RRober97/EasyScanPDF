@@ -108,7 +108,7 @@ class AppTheme {
     ),
 
     // Card theme for document preview and options
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: cardLight,
       elevation: 1,
       shadowColor: shadowLight,
@@ -339,7 +339,7 @@ class AppTheme {
     ),
 
     // Dialog theme for permissions and confirmations
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: dialogLight,
       elevation: 8,
       shadowColor: shadowLight,
@@ -411,7 +411,7 @@ class AppTheme {
         size: 24,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: cardDark,
       elevation: 2,
       shadowColor: shadowDark,
@@ -610,7 +610,7 @@ class AppTheme {
       ),
       elevation: 4,
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: dialogDark,
       elevation: 8,
       shadowColor: shadowDark,
