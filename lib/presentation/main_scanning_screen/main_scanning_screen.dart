@@ -60,10 +60,15 @@ class _MainScanningScreenState extends ConsumerState<MainScanningScreen> {
     final image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       final bytes = await image.readAsBytes();
-      await ref.read(scanSessionProvider.notifier).addPage(bytes);
-      if (mounted) {
-        Fluttertoast.showToast(msg: 'Imagen añadida desde la galería');
-      }
+      final page = await ref.read(scanSessionProvider.notifier).addPage(bytes);
+      if (!mounted) return;
+      Fluttertoast.showToast(msg: 'Imagen añadida desde la galería');
+      await Navigator.of(context).push(
+        DocumentEditorPage.route(
+          page.id,
+          autoOpenCropper: true,
+        ),
+      );
     }
   }
 
@@ -152,7 +157,9 @@ class _MainScanningScreenState extends ConsumerState<MainScanningScreen> {
   }
 
   void _navigateToEditor(String pageId) {
-    Navigator.of(context).push(DocumentEditorPage.route(pageId));
+    Navigator.of(context).push(
+      DocumentEditorPage.route(pageId, autoOpenCropper: false),
+    );
   }
 
   String _generateDefaultName() {

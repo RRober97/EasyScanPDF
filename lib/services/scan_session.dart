@@ -38,7 +38,7 @@ class ScanSessionController extends StateNotifier<ScanSessionState> {
 
   List<ScanPage> get pages => state.pages;
 
-  Future<void> addPage(Uint8List bytes) async {
+  Future<ScanPage> addPage(Uint8List bytes) async {
     final corrected = await _fixOrientation(bytes);
     final page = ScanPage(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -47,8 +47,13 @@ class ScanSessionController extends StateNotifier<ScanSessionState> {
     );
 
     state = state.copyWith(pages: [...state.pages, page]);
-    unawaited(DefaultCacheManager()
-        .putFile(page.id, corrected, fileExtension: 'jpg'));
+    await DefaultCacheManager().putFile(
+      page.id,
+      corrected,
+      fileExtension: 'jpg',
+    );
+
+    return page;
   }
 
   void removePage(String id) {
