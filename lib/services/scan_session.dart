@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:image/image.dart' as img;
 
 class ScanPage {
@@ -45,11 +47,27 @@ class ScanSessionController extends StateNotifier<ScanSessionState> {
     );
 
     state = state.copyWith(pages: [...state.pages, page]);
+    unawaited(DefaultCacheManager()
+        .putFile(page.id, corrected, fileExtension: 'jpg'));
   }
 
   void removePage(String id) {
     state =
         state.copyWith(pages: state.pages.where((page) => page.id != id).toList());
+    unawaited(DefaultCacheManager().removeFile(id));
+  }
+
+  Future<void> updatePage(String id, Uint8List bytes) async {
+    final corrected = await _fixOrientation(bytes);
+    state = state.copyWith(
+      pages: [
+        for (final page in state.pages)
+          if (page.id == id) page.copyWith(bytes: corrected) else page,
+      ],
+    );
+    unawaited(
+      DefaultCacheManager().putFile(id, corrected, fileExtension: 'jpg'),
+    );
   }
 
   Future<void> rotatePage(String id) async {
@@ -65,6 +83,27 @@ class ScanSessionController extends StateNotifier<ScanSessionState> {
     state = state.copyWith(pages: updatedPages);
   }
 
+  Future<void> replacePage(String id, Uint8List bytes) async {
+    final index = state.pages.indexWhere((page) => page.id == id);
+    if (index == -1) return;
+    final corrected = await _fixOrientation(bytes);
+    final updated = [...state.pages];
+    updated[index] = updated[index].copyWith(bytes: corrected);
+    state = state.copyWith(pages: updated);
+    unawaited(
+      DefaultCacheManager().putFile(id, corrected, fileExtension: 'jpg'),
+    );
+  }
+
+  void loadPages(List<ScanPage> pages) {
+    state = state.copyWith(pages: List<ScanPage>.from(pages));
+    for (final page in pages) {
+      unawaited(
+        DefaultCacheManager().putFile(page.id, page.bytes, fileExtension: 'jpg'),
+      );
+    }
+  }
+
   void reorder(int oldIndex, int newIndex) {
     final pages = [...state.pages];
     if (newIndex > oldIndex) {
@@ -76,6 +115,9 @@ class ScanSessionController extends StateNotifier<ScanSessionState> {
   }
 
   void clear() {
+    for (final page in state.pages) {
+      unawaited(DefaultCacheManager().removeFile(page.id));
+    }
     state = const ScanSessionState();
   }
 

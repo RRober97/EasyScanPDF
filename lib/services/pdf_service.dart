@@ -27,8 +27,12 @@ class PdfService {
 
   final DirectoryProvider _tempDirectoryProvider;
 
-  Future<File> buildPdf(List<Uint8List> pages,
-      {required bool isPro, String? filename}) async {
+  Future<File> buildPdf(
+    List<Uint8List> pages, {
+    required bool isPro,
+    String? filename,
+    int jpegQuality = 90,
+  }) async {
     if (!isPro && pages.length > Limits.normalMaxPagesPerPdf) {
       throw PdfLimitExceededException(
         'El plan Normal permite hasta ${Limits.normalMaxPagesPerPdf} páginas por documento.',
@@ -43,7 +47,12 @@ class PdfService {
         continue;
       }
       final baked = img.bakeOrientation(image);
-      final encoded = Uint8List.fromList(img.encodeJpg(baked, quality: 90));
+      final encoded = Uint8List.fromList(
+        img.encodeJpg(
+          baked,
+          quality: jpegQuality.clamp(60, 100).toInt(),
+        ),
+      );
       final memoryImage = pw.MemoryImage(encoded);
       document.addPage(
         pw.Page(

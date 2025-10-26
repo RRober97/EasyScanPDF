@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../presentation/camera_scanning_interface/camera_scanning_interface.dart';
+import '../presentation/home/home_screen.dart';
 import '../presentation/library/library_screen.dart';
 import '../presentation/main_scanning_screen/main_scanning_screen.dart';
 import '../presentation/paywall/paywall_screen.dart';
@@ -11,6 +12,7 @@ import '../presentation/splash_screen/splash_screen.dart';
 class AppRoutes {
   // TODO: Add your routes here
   static const String initial = '/';
+  static const String home = '/home';
   static const String splash = '/splash-screen';
   static const String mainScanning = '/main-scanning-screen';
   static const String cameraScanningInterface = '/camera-scanning-interface';
@@ -21,7 +23,8 @@ class AppRoutes {
   static const String settings = '/settings';
 
   static Map<String, WidgetBuilder> routes = {
-    initial: (context) => const MainScanningScreen(),
+    initial: (context) => const HomeScreen(),
+    home: (context) => const HomeScreen(),
     splash: (context) => const SplashScreen(),
     mainScanning: (context) => const MainScanningScreen(),
     cameraScanningInterface: (context) => const CameraScanningInterface(),
