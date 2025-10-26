@@ -45,13 +45,21 @@ class DocumentEditorPage extends ConsumerStatefulWidget {
   const DocumentEditorPage({
     super.key,
     required this.pageId,
+    this.autoOpenCropper = false,
   });
 
   final String pageId;
+  final bool autoOpenCropper;
 
-  static Route<void> route(String pageId) {
+  static Route<void> route(
+    String pageId, {
+    bool autoOpenCropper = false,
+  }) {
     return MaterialPageRoute<void>(
-      builder: (_) => DocumentEditorPage(pageId: pageId),
+      builder: (_) => DocumentEditorPage(
+        pageId: pageId,
+        autoOpenCropper: autoOpenCropper,
+      ),
       settings: RouteSettings(name: 'document-editor/$pageId'),
     );
   }
@@ -82,6 +90,15 @@ class _DocumentEditorPageState extends ConsumerState<DocumentEditorPage> {
     final page = session.pages.firstWhere((page) => page.id == widget.pageId);
     _originalBytes = page.bytes;
     _currentBytes = page.bytes;
+
+    if (widget.autoOpenCropper) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _showCropper = true;
+        });
+      });
+    }
   }
 
   @override

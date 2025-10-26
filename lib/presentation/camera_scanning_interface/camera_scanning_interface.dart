@@ -12,6 +12,7 @@ import '../../core/constants/limits.dart';
 import '../../routes/app_routes.dart';
 import '../../services/scan_session.dart';
 import '../../services/subscription_service.dart';
+import '../editor/document_editor_page.dart';
 
 class CameraScanningInterface extends ConsumerStatefulWidget {
   const CameraScanningInterface({super.key});
@@ -123,7 +124,6 @@ class _CameraScanningInterfaceState
       final xFile = await controller.takePicture();
       final bytes = await xFile.readAsBytes();
       await _addPage(bytes);
-      Fluttertoast.showToast(msg: 'Página añadida');
     } catch (e) {
       Fluttertoast.showToast(msg: 'Error al capturar la imagen');
     } finally {
@@ -140,7 +140,6 @@ class _CameraScanningInterfaceState
       if (image != null) {
         final bytes = await image.readAsBytes();
         await _addPage(bytes);
-        Fluttertoast.showToast(msg: 'Imagen añadida desde la galería');
       }
     } catch (e) {
       Fluttertoast.showToast(msg: 'No se pudo abrir la galería');
@@ -148,7 +147,15 @@ class _CameraScanningInterfaceState
   }
 
   Future<void> _addPage(Uint8List bytes) async {
-    await ref.read(scanSessionProvider.notifier).addPage(bytes);
+    final page = await ref.read(scanSessionProvider.notifier).addPage(bytes);
+    if (!mounted) return;
+    Fluttertoast.showToast(msg: 'Página añadida');
+    await Navigator.of(context).push(
+      DocumentEditorPage.route(
+        page.id,
+        autoOpenCropper: true,
+      ),
+    );
   }
 
   Future<bool> _canAddPage() async {
