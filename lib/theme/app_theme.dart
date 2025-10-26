@@ -294,21 +294,6 @@ class AppTheme {
       trackHeight: 4,
     ),
 
-    // Tab bar theme for document organization
-    tabBarTheme: TabBarTheme(
-      labelColor: primaryLight,
-      unselectedLabelColor: textSecondaryLight,
-      indicatorColor: primaryLight,
-      indicatorSize: TabBarIndicatorSize.label,
-      labelStyle: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-      ),
-      unselectedLabelStyle: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-      ),
-    ),
 
     // Tooltip theme for help information
     tooltipTheme: TooltipThemeData(
@@ -573,20 +558,6 @@ class AppTheme {
       overlayColor: primaryDark.withValues(alpha: 0.2),
       inactiveTrackColor: borderDark,
       trackHeight: 4,
-    ),
-    tabBarTheme: TabBarTheme(
-      labelColor: primaryDark,
-      unselectedLabelColor: textSecondaryDark,
-      indicatorColor: primaryDark,
-      indicatorSize: TabBarIndicatorSize.label,
-      labelStyle: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-      ),
-      unselectedLabelStyle: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-      ),
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(

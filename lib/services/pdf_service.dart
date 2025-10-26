@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-
+import 'package:pdf/pdf.dart' as pdf;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -47,7 +47,7 @@ class PdfService {
       final memoryImage = pw.MemoryImage(encoded);
       document.addPage(
         pw.Page(
-          pageFormat: pw.PdfPageFormat.a4,
+          pageFormat: pdf.PdfPageFormat.a4,
           build: (context) => pw.Center(
             child: pw.Image(memoryImage, fit: pw.BoxFit.contain),
           ),

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "es.centraldelregalo.pdf_scanner"
-    compileSdk = 34
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
