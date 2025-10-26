@@ -34,7 +34,7 @@ class PaywallScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Desbloquea Pro'),
+        title: const Text('Suscríbete a Pro'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -42,7 +42,7 @@ class PaywallScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Desbloquea páginas ilimitadas y 20 documentos recientes — 2,99 €/mes (IVA incl.).',
+              'Suscríbete a Pro y disfruta de páginas ilimitadas y 20 documentos recientes — 2,99 €/mes (IVA incl.).',
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 24),
@@ -93,7 +93,7 @@ class PaywallScreen extends ConsumerWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Probar Pro'),
+                  : const Text('Suscribirse a Pro'),
             ),
             const SizedBox(height: 12),
             TextButton(
