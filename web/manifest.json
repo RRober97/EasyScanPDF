@@ -1,6 +1,6 @@
 {
-    "name": "pdf_scanner",
-    "short_name": "pdf_scanner",
+    "name": "EasyScan PDF",
+    "short_name": "EasyScan PDF",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

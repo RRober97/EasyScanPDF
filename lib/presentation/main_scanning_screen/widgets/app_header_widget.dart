@@ -40,7 +40,7 @@ class AppHeaderWidget extends StatelessWidget {
           SizedBox(width: 3.w),
           Flexible(
             child: Text(
-              'PDF Scanner',
+              'EasyScan PDF',
               style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
                 color: AppTheme.lightTheme.colorScheme.onSurface,
                 fontWeight: FontWeight.w700,

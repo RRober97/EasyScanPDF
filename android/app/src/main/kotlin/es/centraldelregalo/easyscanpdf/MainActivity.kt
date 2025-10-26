@@ -1,4 +1,4 @@
-package es.centraldelregalo.pdf_scanner
+package es.centraldelregalo.easyscanpdf
 
 import io.flutter.embedding.android.FlutterActivity
 
