@@ -48,21 +48,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        edgeOffset: 100,
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 120,
-              backgroundColor: colorScheme.surface,
-              titleSpacing: 0,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsetsDirectional.only(
-                  start: 24,
-                  bottom: 16,
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          edgeOffset: 100,
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 120,
+                backgroundColor: colorScheme.surface,
+                titleSpacing: 0,
+                surfaceTintColor: Colors.transparent,
+                shadowColor: colorScheme.shadow.withValues(alpha: 0.08),
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(1),
+                  child: Divider(
+                    height: 1,
+                    color: colorScheme.outlineVariant,
+                  ),
                 ),
+                flexibleSpace: FlexibleSpaceBar(
+                  titlePadding: const EdgeInsetsDirectional.only(
+                    start: 24,
+                    bottom: 16,
+                  ),
                 title: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,52 +106,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search),
-                        hintText: 'Buscar por nombre o fecha',
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _query = value.toLowerCase();
-                        });
-                      },
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search),
+                            hintText: 'Buscar por nombre o fecha',
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _query = value.toLowerCase();
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        _buildQuickActions(context),
+                        const SizedBox(height: 24),
+                        _buildDraftsSection(),
+                        const SizedBox(height: 24),
+                        _buildDocumentsSection(),
+                        const SizedBox(height: 48),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    _buildQuickActions(context),
-                    const SizedBox(height: 24),
-                    _buildDraftsSection(),
-                    const SizedBox(height: 24),
-                    _buildDocumentsSection(),
-                    const SizedBox(height: 48),
-                  ],
+                  ),
                 ),
               ),
             ),
           ],
+        ),
         ),
       ),
     );
   }
 
   Widget _buildQuickActions(BuildContext context) {
-    return DecoratedBox(
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
+            colorScheme.primary.withValues(alpha: 0.12),
+            colorScheme.secondary.withValues(alpha: 0.08),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        border: Border.all(color: colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -155,7 +183,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               'Captura desde la cámara o importa varias imágenes para generar un PDF.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
@@ -169,7 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     label: const Text('Nuevo escaneo'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () async {
@@ -200,36 +230,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (drafts.isEmpty) {
           return const SizedBox.shrink();
         }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionHeader(
-              title: 'Borradores',
-              subtitle: 'Continúa donde lo dejaste',
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 140,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: drafts.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  final draft = drafts[index];
-                  return _DraftCard(
-                    draft: draft,
-                    onOpen: () => _openDraft(draft),
-                    onDelete: () async {
-                      await ref
-                          .read(draftStorageServiceProvider)
-                          .deleteDraft(draft.id);
-                      _refresh();
-                    },
-                  );
-                },
+        return _SectionSurface(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionHeader(
+                title: 'Borradores',
+                subtitle: 'Continúa donde lo dejaste',
               ),
-            ),
-          ],
+              SizedBox(
+                height: 160,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: drafts.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    final draft = drafts[index];
+                    return _DraftCard(
+                      draft: draft,
+                      onOpen: () => _openDraft(draft),
+                      onDelete: () async {
+                        await ref
+                            .read(draftStorageServiceProvider)
+                            .deleteDraft(draft.id);
+                        _refresh();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -258,25 +290,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _query.isEmpty ? 'Genera tu primer PDF para verlo aquí.' : 'No encontramos documentos que coincidan con tu búsqueda.',
           );
         }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionHeader(
-              title: 'Recientes',
-              subtitle: 'Tus últimos PDF listos para compartir',
-            ),
-            const SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return _DocumentTile(document: item);
-              },
-            ),
-          ],
+        return _SectionSurface(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionHeader(
+                title: 'Recientes',
+                subtitle: 'Tus últimos PDF listos para compartir',
+              ),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return _DocumentTile(document: item);
+                },
+              ),
+            ],
+          ),
         );
       },
     );
@@ -308,6 +341,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -318,14 +352,17 @@ class _SectionHeader extends StatelessWidget {
               .titleMedium
               ?.copyWith(fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           subtitle,
           style: Theme.of(context)
               .textTheme
               .bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.outline),
+              ?.copyWith(color: colorScheme.outline),
         ),
+        const SizedBox(height: 14),
+        Divider(color: colorScheme.outlineVariant, height: 1),
+        const SizedBox(height: 14),
       ],
     );
   }
@@ -348,11 +385,16 @@ class _DraftCard extends StatelessWidget {
     return SizedBox(
       width: 220,
       child: Material(
-        elevation: 2,
-        borderRadius: BorderRadius.circular(18),
+        elevation: 3,
+        shadowColor: colorScheme.shadow.withValues(alpha: 0.12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
         color: colorScheme.surface,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           onTap: onOpen,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -406,12 +448,19 @@ class _DocumentTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Material(
-      elevation: 1,
-      borderRadius: BorderRadius.circular(20),
-      color: Theme.of(context).colorScheme.surface,
+      elevation: 2,
+      shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      color: colorScheme.surface,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         title: Text(
           document.name,
           maxLines: 1,
@@ -420,7 +469,12 @@ class _DocumentTile extends ConsumerWidget {
         subtitle: Text(
           '${document.pageCount} páginas · ${_formatSize(document.sizeBytes)}',
         ),
-        trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.primary),
+        leading: CircleAvatar(
+          radius: 22,
+          backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
+          child: Icon(Icons.picture_as_pdf_outlined, color: colorScheme.primary),
+        ),
+        trailing: Icon(Icons.chevron_right, color: colorScheme.primary),
         onTap: () {
           Navigator.pushNamed(
             context,
@@ -452,20 +506,21 @@ class _SectionLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(title: title, subtitle: 'Cargando...'),
-        const SizedBox(height: 12),
-        Container(
-          height: 120,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(20),
+    return _SectionSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(title: title, subtitle: 'Cargando...'),
+          Container(
+            height: 140,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Center(child: CircularProgressIndicator()),
           ),
-          child: const Center(child: CircularProgressIndicator()),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -478,19 +533,13 @@ class _EmptyTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-      ),
+    return _SectionSurface(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.picture_as_pdf_outlined,
               size: 48, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium,
@@ -521,6 +570,7 @@ class _ErrorTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -540,6 +590,34 @@ class _ErrorTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionSurface extends StatelessWidget {
+  const _SectionSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
