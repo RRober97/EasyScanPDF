@@ -172,10 +172,39 @@ class _MainScanningScreenState extends ConsumerState<MainScanningScreen> {
     final progress = limit == 0 ? 0.0 : session.pages.length / limit;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddOptions,
-        icon: const Icon(Icons.add_a_photo_outlined),
-        label: const Text('Añadir página'),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Row(
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'export-fab',
+              onPressed: session.pages.isEmpty
+                  ? () => Fluttertoast.showToast(
+                        msg: 'Añade al menos una página para generar el PDF',
+                      )
+                  : () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.pdfGeneration,
+                        arguments: {
+                          'name': _nameController.text.trim(),
+                          'draftId': _draftId,
+                        },
+                      );
+                    },
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text('Revisar y exportar PDF'),
+            ),
+            const Spacer(),
+            FloatingActionButton.extended(
+              heroTag: 'add-page-fab',
+              onPressed: _showAddOptions,
+              icon: const Icon(Icons.add_a_photo_outlined),
+              label: const Text('Añadir página'),
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -330,30 +359,6 @@ class _MainScanningScreenState extends ConsumerState<MainScanningScreen> {
                           );
                         },
                       ),
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                child: FilledButton.icon(
-                  onPressed: session.pages.isEmpty
-                      ? () => Fluttertoast.showToast(
-                            msg: 'Añade al menos una página para generar el PDF',
-                          )
-                      : () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.pdfGeneration,
-                            arguments: {
-                              'name': _nameController.text.trim(),
-                              'draftId': _draftId,
-                            },
-                          );
-                        },
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: const Text('Revisar y exportar PDF'),
-                ),
               ),
             ),
           ],
