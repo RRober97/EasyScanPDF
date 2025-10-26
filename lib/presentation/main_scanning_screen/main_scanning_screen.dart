@@ -182,33 +182,41 @@ class _MainScanningScreenState extends ConsumerState<MainScanningScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            FloatingActionButton.extended(
-              heroTag: 'export-fab',
-              onPressed: session.pages.isEmpty
-                  ? () => Fluttertoast.showToast(
-                        msg: 'Añade al menos una página para generar el PDF',
-                      )
-                  : () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.pdfGeneration,
-                        arguments: {
-                          'name': _nameController.text.trim(),
-                          'draftId': _draftId,
-                        },
-                      );
-                    },
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('Revisar y exportar PDF'),
+            SizedBox(
+              width: double.infinity,
+              child: FloatingActionButton.extended(
+                heroTag: 'export-fab',
+                onPressed: session.pages.isEmpty
+                    ? () => Fluttertoast.showToast(
+                          msg: 'Añade al menos una página para generar el PDF',
+                        )
+                    : () {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.pdfGeneration,
+                          arguments: {
+                            'name': _nameController.text.trim(),
+                            'draftId': _draftId,
+                          },
+                        );
+                      },
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Revisar y exportar PDF'),
+              ),
             ),
-            const Spacer(),
-            FloatingActionButton.extended(
-              heroTag: 'add-page-fab',
-              onPressed: _showAddOptions,
-              icon: const Icon(Icons.add_a_photo_outlined),
-              label: const Text('Añadir página'),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FloatingActionButton.extended(
+                heroTag: 'add-page-fab',
+                onPressed: _showAddOptions,
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: const Text('Añadir página'),
+              ),
             ),
           ],
         ),
