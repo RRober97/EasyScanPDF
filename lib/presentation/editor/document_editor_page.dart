@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/foundation.dart';
@@ -10,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
-import '../../services/document_edge_detector.dart';
 import '../../services/scan_session.dart';
 
 enum AspectRatioOption {
@@ -47,17 +45,20 @@ class DocumentEditorPage extends ConsumerStatefulWidget {
   const DocumentEditorPage({
     super.key,
     required this.pageId,
-    this.initialCropRect,
+    this.autoOpenCropper = false,
   });
 
   final String pageId;
-  final Rect? initialCropRect;
+  final bool autoOpenCropper;
 
-  static Route<void> route(String pageId, {Rect? initialCropRect}) {
+  static Route<void> route(
+    String pageId, {
+    bool autoOpenCropper = false,
+  }) {
     return MaterialPageRoute<void>(
       builder: (_) => DocumentEditorPage(
         pageId: pageId,
-        initialCropRect: initialCropRect,
+        autoOpenCropper: autoOpenCropper,
       ),
       settings: RouteSettings(name: 'document-editor/$pageId'),
     );
@@ -76,7 +77,6 @@ class _DocumentEditorPageState extends ConsumerState<DocumentEditorPage> {
   bool _isProcessing = false;
   bool _showCropper = false;
   AspectRatioOption _aspectRatio = AspectRatioOption.free;
-  Rect? _initialCropRect;
 
   double _brightness = 0;
   double _contrast = 1;
@@ -90,28 +90,20 @@ class _DocumentEditorPageState extends ConsumerState<DocumentEditorPage> {
     final page = session.pages.firstWhere((page) => page.id == widget.pageId);
     _originalBytes = page.bytes;
     _currentBytes = page.bytes;
-    _initialCropRect = widget.initialCropRect;
-    if (_initialCropRect == null) {
-      _detectInitialCropRect();
+
+    if (widget.autoOpenCropper) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _showCropper = true;
+        });
+      });
     }
   }
 
   @override
   void dispose() {
     super.dispose();
-  }
-
-  Future<void> _detectInitialCropRect() async {
-    final snapshot = Uint8List.fromList(_currentBytes);
-    final detected = await Future<Rect?>(() {
-      return DocumentEdgeDetector.detect(snapshot);
-    });
-    if (!mounted || detected == null) {
-      return;
-    }
-    setState(() {
-      _initialCropRect = detected;
-    });
   }
 
   Future<void> _applyCrop() async {
@@ -171,9 +163,7 @@ class _DocumentEditorPageState extends ConsumerState<DocumentEditorPage> {
       _contrast = 1;
       _grayscale = false;
       _textEnhance = false;
-      _initialCropRect = null;
     });
-    await _detectInitialCropRect();
   }
 
   Future<void> _saveChanges() async {
@@ -246,7 +236,6 @@ class _DocumentEditorPageState extends ConsumerState<DocumentEditorPage> {
                             key: const ValueKey('cropper'),
                             controller: _cropController,
                             image: _currentBytes,
-                            initialRect: _initialCropRect,
                             aspectRatio: _aspectRatio.ratio,
                             withCircleUi: false,
                             baseColor: Theme.of(context).colorScheme.surface,
