@@ -10,6 +10,6 @@ class Limits {
 class PricingText {
   const PricingText._();
 
-  static const String normal = '0,99 € (IVA incl.)';
+  static const String normal = 'Incluido con tu cuenta';
   static const String pro = '2,99 € / mes (IVA incl.)';
 }

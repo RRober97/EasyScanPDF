@@ -52,6 +52,7 @@ class PaywallScreen extends ConsumerWidget {
                   'Hasta ${Limits.normalMaxPagesPerPdf} páginas por PDF y ${Limits.normalMaxSavedPdfs} documentos recientes.',
               price: PricingText.normal,
               selected: !subscription.isPro,
+              usePriceStyle: false,
             ),
             const SizedBox(height: 16),
             _PlanTile(
@@ -116,6 +117,7 @@ class _PlanTile extends StatelessWidget {
     required this.price,
     required this.selected,
     this.isLoading = false,
+    this.usePriceStyle = true,
   });
 
   final String title;
@@ -123,6 +125,7 @@ class _PlanTile extends StatelessWidget {
   final String? price;
   final bool selected;
   final bool isLoading;
+  final bool usePriceStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +167,12 @@ class _PlanTile extends StatelessWidget {
               ],
             )
           else
-            Text(price ?? '—', style: theme.textTheme.labelLarge),
+            Text(
+              price ?? '—',
+              style: usePriceStyle
+                  ? theme.textTheme.labelLarge
+                  : theme.textTheme.bodyMedium,
+            ),
         ],
       ),
     );
