@@ -1,4 +1,4 @@
-# Revisión funcional de PDF Scanner
+# Revisión funcional de EasyScan PDF
 
 ## Cobertura del flujo principal
 - La app define rutas para `Splash`, `MainScanning`, `CameraScanning`, `PdfGeneration` y `ShareDocument`, pero no existen implementaciones para biblioteca, paywall o ajustes; la navegación principal solo cubre un subconjunto del flujo solicitado. 【F:lib/routes/app_routes.dart†L3-L25】

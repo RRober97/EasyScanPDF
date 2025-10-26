@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:pdf_scanner/core/constants/limits.dart';
-import 'package:pdf_scanner/services/storage_service.dart';
+import 'package:easyscanpdf/core/constants/limits.dart';
+import 'package:easyscanpdf/services/storage_service.dart';
 
 Future<File> _createDummyPdf(Directory dir, String name) async {
   final file = File(p.join(dir.path, name));
