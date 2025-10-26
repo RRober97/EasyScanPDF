@@ -1,15 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:pdf_scanner/platform/file_ops.dart';
 import 'package:sizer/sizer.dart';
-import 'package:universal_html/html.dart' as html;
-
 import '../../core/app_export.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_icon_widget.dart';
@@ -152,51 +147,12 @@ class _PdfGenerationState extends State<PdfGeneration>
 
   Future<String?> _generatePdfFile() async {
     try {
-      if (kIsWeb) {
-        return await _generatePdfForWeb();
-      } else {
-        return await _generatePdfForMobile();
-      }
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<String?> _generatePdfForWeb() async {
-    try {
-      // Create PDF content for web
+      final fileName =
+          'ScanPDF_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final pdfContent = _createPdfContent();
       final bytes = Uint8List.fromList(pdfContent.codeUnits);
-
-      // Create blob and download link
-      final blob = html.Blob([bytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-
-      // Store URL for sharing
-      return url;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<String?> _generatePdfForMobile() async {
-    try {
-      // Request storage permission
-      if (!await _requestStoragePermission()) {
-        return null;
-      }
-
-      // Get documents directory
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = 'ScanPDF_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final filePath = '${directory.path}/$fileName';
-
-      // Create PDF file
-      final file = File(filePath);
-      final pdfContent = _createPdfContent();
-      await file.writeAsString(pdfContent);
-
-      return filePath;
+      final file = await saveBytesToAppDocs(fileName, bytes);
+      return file.path;
     } catch (e) {
       return null;
     }
@@ -260,20 +216,6 @@ startxref
 %%EOF''';
   }
 
-  Future<bool> _requestStoragePermission() async {
-    if (kIsWeb) return true;
-
-    try {
-      if (Platform.isAndroid) {
-        final status = await Permission.storage.request();
-        return status.isGranted;
-      }
-      return true; // iOS handles permissions automatically
-    } catch (e) {
-      return false;
-    }
-  }
-
   void _handleProcessingError(String title, String message) {
     setState(() {
       _isProcessing = false;
@@ -316,20 +258,11 @@ startxref
     if (_generatedPdfPath == null) return;
 
     try {
-      if (kIsWeb) {
-        // Web sharing - trigger download
-        final anchor = html.AnchorElement(href: _generatedPdfPath!)
-          ..setAttribute('download',
-              'ScanPDF_${DateTime.now().millisecondsSinceEpoch}.pdf')
-          ..click();
-      } else {
-        // Mobile sharing - navigate to share screen
-        Navigator.pushNamed(
-          context,
-          AppRoutes.shareDocument,
-          arguments: {'pdfPath': _generatedPdfPath},
-        );
-      }
+      Navigator.pushNamed(
+        context,
+        AppRoutes.shareDocument,
+        arguments: {'pdfPath': _generatedPdfPath},
+      );
     } catch (e) {
       _showErrorSnackBar('Error al compartir PDF');
     }

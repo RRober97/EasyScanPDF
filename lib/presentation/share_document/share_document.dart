@@ -1,14 +1,9 @@
 import 'dart:convert';
-import 'dart:io' if (dart.library.io) 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:pdf_scanner/platform/file_ops.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sizer/sizer.dart';
-import 'package:universal_html/html.dart' as html;
-
 import '../../core/app_export.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_bottom_bar.dart';
@@ -75,18 +70,9 @@ class _ShareDocumentState extends State<ShareDocument>
     try {
       final pdfContent = _generateMockPDFContent();
 
-      if (kIsWeb) {
-        // For web, create a blob URL
-        final bytes = utf8.encode(pdfContent);
-        final blob = html.Blob([bytes], 'application/pdf');
-        _pdfFilePath = html.Url.createObjectUrlFromBlob(blob);
-      } else {
-        // For mobile, save to temporary directory
-        final directory = await getTemporaryDirectory();
-        final file = File('${directory.path}/$_fileName');
-        await file.writeAsString(pdfContent);
-        _pdfFilePath = file.path;
-      }
+      final bytes = utf8.encode(pdfContent);
+      final file = await saveBytesToAppDocs(_fileName, bytes);
+      _pdfFilePath = file.path;
     } catch (e) {
       debugPrint('Error generating mock PDF: $e');
     }
@@ -173,11 +159,7 @@ startxref
     });
 
     try {
-      if (kIsWeb) {
-        await _shareOnWeb();
-      } else {
-        await _shareOnMobile();
-      }
+      await _shareOnMobile();
 
       await Future.delayed(const Duration(milliseconds: 1500));
 
@@ -190,13 +172,6 @@ startxref
       debugPrint('Error sharing PDF: $e');
       _showErrorState();
     }
-  }
-
-  Future<void> _shareOnWeb() async {
-    // For web, trigger download
-    final anchor = html.AnchorElement(href: _pdfFilePath!)
-      ..setAttribute('download', _fileName)
-      ..click();
   }
 
   Future<void> _shareOnMobile() async {
@@ -263,10 +238,6 @@ startxref
   @override
   void dispose() {
     _animationController.dispose();
-    // Clean up web blob URL
-    if (kIsWeb && _pdfFilePath != null) {
-      html.Url.revokeObjectUrl(_pdfFilePath!);
-    }
     super.dispose();
   }
 
