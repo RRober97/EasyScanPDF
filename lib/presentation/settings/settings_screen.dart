@@ -48,8 +48,18 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: () async {
-              await ref.read(subscriptionProvider.notifier).restorePurchases();
-              Fluttertoast.showToast(msg: 'Compras restauradas');
+              try {
+                await ref
+                    .read(subscriptionProvider.notifier)
+                    .restorePurchases();
+                Fluttertoast.showToast(msg: 'Compras restauradas');
+              } on SubscriptionPurchaseException catch (error) {
+                Fluttertoast.showToast(msg: error.message);
+              } catch (error) {
+                Fluttertoast.showToast(
+                  msg: 'No se pudieron restaurar las compras: $error',
+                );
+              }
             },
             child: const Text('Restaurar compras'),
           ),
