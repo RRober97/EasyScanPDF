@@ -1,4 +1,4 @@
-# pdf_scanner
+# EasyScan PDF
 
 A new Flutter project.
 

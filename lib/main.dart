@@ -7,18 +7,18 @@ import 'routes/app_routes.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: PdfScannerApp()));
+  runApp(const ProviderScope(child: EasyScanPdfApp()));
 }
 
-class PdfScannerApp extends StatelessWidget {
-  const PdfScannerApp({super.key});
+class EasyScanPdfApp extends StatelessWidget {
+  const EasyScanPdfApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Sizer(
       builder: (context, orientation, deviceType) {
         return MaterialApp(
-          title: 'PDF Scanner',
+          title: 'EasyScan PDF',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

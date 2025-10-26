@@ -6,7 +6,7 @@
         android:maxSdkVersion="32" />
 
     <application
-        android:label="pdf_scanner"
+        android:label="EasyScan PDF"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

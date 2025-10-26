@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:pdf_scanner/services/pdf_service.dart';
+import 'package:easyscanpdf/services/pdf_service.dart';
 
 Uint8List _samplePage() {
   final image = img.Image(width: 100, height: 100);
