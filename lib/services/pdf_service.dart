@@ -69,10 +69,24 @@ class PdfService {
       await tempDir.create(recursive: true);
     }
     final name = filename ?? _generateFileName();
-    final file = File(p.join(tempDir.path, name));
+    final safeName = _sanitizeFileName(name);
+    final file = File(p.join(tempDir.path, safeName));
     final bytes = await document.save();
     await file.writeAsBytes(bytes, flush: true);
     return file;
+  }
+
+  String _sanitizeFileName(String input) {
+    var sanitized = input.trim();
+    if (sanitized.isEmpty) {
+      sanitized = _generateFileName();
+    }
+    sanitized = sanitized.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    sanitized = sanitized.replaceAll(RegExp(r'\s+'), '_');
+    if (!sanitized.toLowerCase().endsWith('.pdf')) {
+      sanitized = '$sanitized.pdf';
+    }
+    return sanitized;
   }
 
   String _generateFileName() {
