@@ -1,16 +1,35 @@
-# EasyScan PDF
+📱 EasyScanPDF
 
-A new Flutter project.
+EasyScanPDF es una aplicación móvil diseñada para digitalizar documentos de forma rápida, precisa y profesional.
+Convierte tus fotos en PDFs de alta calidad, optimizados y listos para compartir o guardar.
 
-## Getting Started
+🚀 Funciones principales
 
-This project is a starting point for a Flutter application.
+📄 Escaneo inteligente: detecta bordes automáticamente y corrige perspectiva.
+✂️ Edición rápida: recorta, rota, ajusta brillo y contraste.
+☁️ Exportación flexible: guarda como PDF o imagen, comparte por correo o mensajería.
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+🧩 Tecnologías
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Flutter 3 — interfaz multiplataforma nativa.
+Dart — rendimiento optimizado.
+Riverpod / Provider — gestión de estado limpia y eficiente.
+CameraX / ML Kit — detección de bordes y OCR.
+
+📦 Instalación (modo desarrollador)
+# Clonar el repositorio
+git clone git@github.com:RRober97/easyscanpdf.git
+cd easyscanpdf
+
+# Instalar dependencias
+flutter pub get
+
+# Ejecutar en emulador o dispositivo físico
+flutter run
+
+🧑‍💻 Autor
+
+Roberto Escagedo Alonsotegui
+📧 contacto@rescagedo.dev
+🌐 rescagedo.dev
